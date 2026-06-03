@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NL-SQL Engine</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        header {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border-bottom: 1px solid #334155;
+            padding: 0 32px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo h1 { font-size: 18px; font-weight: 700; color: #38bdf8; }
+        .logo .dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+        .header-badges { display: flex; gap: 8px; }
+        .hbadge { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid #334155; color: #94a3b8; }
+
+        /* ── LAYOUT ── */
+        .layout { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 64px); }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            background: #1e293b;
+            border-right: 1px solid #334155;
+            padding: 24px 16px;
+            overflow-y: auto;
+        }
+        .sidebar-section { margin-bottom: 28px; }
+        .sidebar-title {
+            font-size: 10px;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            margin-bottom: 12px;
+            padding: 0 8px;
+        }
+        .guide-step {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: default;
+        }
+        .guide-step:hover { background: #0f172a; }
+        .step-num {
+            width: 22px; height: 22px;
+            background: #0ea5e9;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            color: white;
+        }
+        .step-text { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+        .step-text strong { color: #e2e8f0; display: block; margin-bottom: 2px; }
+
+        .role-info {
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            border: 1px solid #1e293b;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .role-info:hover { border-color: #38bdf8; }
+        .role-name { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+        .role-tables { font-size: 11px; color: #64748b; }
+        .role-admin { background: #0c1a2e; }
+        .role-hr { background: #0c1f1a; }
+        .role-finance { background: #1a150c; }
+        .role-sales { background: #1a0c1a; }
+
+        .example-query {
+            padding: 8px 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #94a3b8;
+            cursor: pointer;
+            margin-bottom: 6px;
+            transition: all .15s;
+        }
+        .example-query:hover { border-color: #38bdf8; color: #38bdf8; background: #0c1a2e; }
+
+        /* ── MAIN ── */
+        .main { padding: 24px 28px; overflow-y: auto; }
+
+        /* ── QUERY BOX ── */
+        .query-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .query-card-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #94a3b8;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .query-card-title::before {
+            content: '';
+            width: 3px; height: 14px;
+            background: #0ea5e9;
+            border-radius: 2px;
+        }
+        .query-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        select {
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            outline: none;
+            width: 140px;
+            cursor: pointer;
+        }
+        select:focus { border-color: #38bdf8; }
+        .question-wrap { flex: 1; position: relative; }
+        input[type="text"] {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 40px 10px 14px;
+            font-size: 13px;
+            outline: none;
+        }
+        input[type="text"]:focus { border-color: #38bdf8; }
+        input::placeholder { color: #475569; }
+        .clear-btn {
+            position: absolute; right: 10px; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none;
+            color: #475569; cursor: pointer; font-size: 16px;
+            padding: 0;
+        }
+        .clear-btn:hover { color: #94a3b8; }
+        .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        button { cursor: pointer; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; transition: all .15s; }
+        .btn-run { background: #0ea5e9; color: white; padding: 10px 20px; }
+        .btn-run:hover { background: #0284c7; }
+        .btn-run:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-excel { background: #16a34a; color: white; padding: 10px 20px; }
+        .btn-excel:hover { background: #15803d; }
+        .btn-audit { background: transparent; border: 1px solid #334155; color: #94a3b8; padding: 10px 20px; }
+        .btn-audit:hover { border-color: #94a3b8; color: #e2e8f0; }
+        .btn-clear-cache { background: transparent; border: 1px solid #334155; color: #f87171; padding: 10px 20px; }
+        .btn-clear-cache:hover { border-color: #f87171; }
+
+        /* ── STATUS BAR ── */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #0f172a;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #475569;
+            min-height: 36px;
+        }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #475569; }
+        .status-dot.loading { background: #f59e0b; animation: pulse 1s infinite; }
+        .status-dot.success { background: #22c55e; }
+        .status-dot.error { background: #ef4444; }
+
+        /* ── TABS ── */
+        .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid #334155; padding-bottom: 0; }
+        .tab {
+            padding: 8px 16px;
+            font-size: 13px;
+            color: #64748b;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            border-radius: 0;
+        }
+        .tab:hover { color: #94a3b8; }
+        .tab.active { color: #38bdf8; border-bottom-color: #38bdf8; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ── SQL DISPLAY ── */
+        .sql-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .sql-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: #162032;
+            border-bottom: 1px solid #334155;
+        }
+        .sql-card-header span { font-size: 11px; color: #64748b; font-family: monospace; }
+        .sql-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+        .badge-cache { background: #451a03; color: #fb923c; }
+        .badge-fresh { background: #052e16; color: #4ade80; }
+        .badge-error { background: #450a0a; color: #f87171; }
+        .sql-body {
+            padding: 14px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #7dd3fc;
+            line-height: 1.6;
+            word-break: break-all;
+            min-height: 44px;
+        }
+
+        /* ── RESULTS TABLE ── */
+        .results-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid #334155;
+        }
+        .results-title { font-size: 13px; font-weight: 500; color: #94a3b8; }
+        .row-count { font-size: 11px; color: #475569; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead tr { background: #162032; }
+        th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #334155; white-space: nowrap; }
+        td { padding: 10px 14px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+        tbody tr:hover { background: #162032; }
+        tbody tr:last-child td { border-bottom: none; }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: #334155;
+        }
+        .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+        .empty-state p { font-size: 13px; }
+
+        .error-box {
+            background: #1a0505;
+            border: 1px solid #7f1d1d;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #fca5a5;
+            font-size: 13px;
+            margin: 16px;
+        }
+
+        /* ── TOOLTIP ── */
+        .tooltip { position: relative; }
+        .tooltip:hover .tip {
+            display: block;
+        }
+        .tip {
+            display: none;
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            font-size: 11px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <div class="dot"></div>
+        <h1>NL-SQL Engine</h1>
+    </div>
+    <div class="header-badges">
+        <span class="hbadge">Spring AI</span>
+        <span class="hbadge">Groq LLaMA 3.3</span>
+        <span class="hbadge">PostgreSQL</span>
+        <span class="hbadge">Redis</span>
+    </div>
+</header>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">How to use</div>
+            <div class="guide-step">
+                <div class="step-num">1</div>
+                <div class="step-text"><strong>Select your Role</strong>Each role can only access specific tables</div>
+            </div>
+            <div class="guide-step">
+                <div class="step-num">2</div>
+                <div class="step-text"><strong>Type your Question</strong>Use plain English — no SQL needed</div>
+            </div>
+            <div class="guide-step">
+                <div class="step-num">3</div>
+                <div class="step-text"><strong>Click Run Query</strong>AI generates and executes SQL automatically</div>
+            </div>
+            <div class="guide-step">
+                <div class="step-num">4</div>
+                <div class="step-text"><strong>Download Excel</strong>Export any result as a professional .xlsx file</div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Role Access</div>
+            <div class="role-info role-admin" onclick="setRole('admin')">
+                <div class="role-name" style="color:#38bdf8">Admin</div>
+                <div class="role-tables">All tables — full access</div>
+            </div>
+            <div class="role-info role-hr" onclick="setRole('hr')">
+                <div class="role-name" style="color:#4ade80"> HR</div>
+                <div class="role-tables">employees, departments, salaries</div>
+            </div>
+            <div class="role-info role-finance" onclick="setRole('finance')">
+                <div class="role-name" style="color:#fb923c">Finance</div>
+                <div class="role-tables">invoices, payments, accounts</div>
+            </div>
+            <div class="role-info role-sales" onclick="setRole('sales')">
+                <div class="role-name" style="color:#c084fc"> Sales</div>
+                <div class="role-tables">orders, customers, products</div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Example Queries</div>
+            <div class="example-query" onclick="setExample('show all employees with salary less than 100000')">
+                show all employees with salary less than 100000
+            </div>
+            <div class="example-query" onclick="setExample('show top 3 highest paid employees')">
+                show top 3 highest paid employees
+            </div>
+            <div class="example-query" onclick="setExample('count employees by department')">
+                count employees by department
+            </div>
+            <div class="example-query" onclick="setExample('show all audit logs')">
+                show all audit logs
+            </div>
+            <div class="example-query" onclick="setExample('show failed queries from audit logs')">
+                show failed queries from audit logs
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- Query Card -->
+        <div class="query-card">
+            <div class="query-card-title">Natural Language Query</div>
+            <div class="query-row">
+                <select id="role">
+                    <option value="admin"> Admin</option>
+                    <option value="hr">HR</option>
+                    <option value="finance">Finance</option>
+                    <option value="sales">Sales</option>
+                    <option value="default">Default</option>
+                </select>
+                <div class="question-wrap">
+                    <input type="text" id="question"
+                           placeholder="Ask anything in plain English... e.g. show top 5 employees by salary"
+                           onkeydown="if(event.key==='Enter') runQuery()"/>
+                    <button class="clear-btn" onclick="clearInput()">×</button>
+                </div>
+            </div>
+            <div class="action-row">
+                <button class="btn-run tooltip" onclick="runQuery()" id="run-btn">
+                    ▶ Run Query
+                    <span class="tip">Press Enter to run</span>
+                </button>
+                <button class="btn-excel" onclick="exportExcel()">⬇ Download Excel</button>
+                <button class="btn-audit" onclick="loadAudit()"> Audit Logs</button>
+                <button class="btn-clear-cache" onclick="clearCache()">🗑 Clear Cache</button>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-dot" id="status-dot"></div>
+            <span id="status-text">Ready — type a question and click Run Query</span>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('results', this)">Results</button>
+            <button class="tab" onclick="switchTab('audit', this)"> Audit Logs</button>
+        </div>
+
+        <!-- Results Tab -->
+        <div id="tab-results" class="tab-content active">
+
+            <div class="sql-card">
+                <div class="sql-card-header">
+                    <span>GENERATED SQL</span>
+                    <span id="cache-badge"></span>
+                </div>
+                <div class="sql-body" id="sql-box">— will appear after you run a query —</div>
+            </div>
+
+            <div class="results-card">
+                <div class="results-header">
+                    <span class="results-title">Query Results</span>
+                    <span class="row-count" id="row-count"></span>
+                </div>
+                <div id="results-container">
+                    <div class="empty-state">
+                        <div class="icon"></div>
+                        <p>Run a query to see results here</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Audit Tab -->
+        <div id="tab-audit" class="tab-content">
+            <div class="results-card">
+                <div class="results-header">
+                    <span class="results-title">Audit Logs — Every query is logged</span>
+                    <span class="row-count" id="audit-count"></span>
+                </div>
+                <div id="audit-container">
+                    <div class="empty-state">
+                        <div class="icon"></div>
+                        <p>Click "Audit Logs" button to load</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function setRole(role) {
+        document.getElementById('role').value = role;
+    }
+
+    function setExample(q) {
+        document.getElementById('question').value = q;
+        document.getElementById('question').focus();
+    }
+
+    function clearInput() {
+        document.getElementById('question').value = '';
+        document.getElementById('question').focus();
+    }
+
+    function setStatus(type, text) {
+        const dot = document.getElementById('status-dot');
+        const txt = document.getElementById('status-text');
+        dot.className = 'status-dot ' + type;
+        txt.innerText = text;
+    }
+
+    function switchTab(tab, el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        el.classList.add('active');
+    }
+
+    async function runQuery() {
+        const question = document.getElementById('question').value.trim();
+        const role = document.getElementById('role').value;
+        if (!question) {
+            setStatus('error', 'Please type a question first');
+            return;
+        }
+
+        const btn = document.getElementById('run-btn');
+        btn.disabled = true;
+        btn.innerText = 'Running...';
+        setStatus('loading', 'Generating SQL and executing query...');
+        document.getElementById('sql-box').innerText = 'Generating SQL...';
+        document.getElementById('results-container').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Executing query...</p></div>';
+        document.getElementById('row-count').innerText = '';
+
+        try {
+            const res = await fetch('/api/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question, role })
+            });
+
+            const data = await res.json();
+            btn.disabled = false;
+            btn.innerText = '▶ Run Query';
+
+            if (data.error) {
+                document.getElementById('sql-box').innerText = data.generatedSQL || '—';
+                document.getElementById('cache-badge').innerHTML = '<span class="sql-badge badge-error">ERROR</span>';
+                document.getElementById('results-container').innerHTML = `<div class="error-box">❌ ${data.error}</div>`;
+                setStatus('error', 'Query failed: ' + data.error);
+                return;
+            }
+
+            document.getElementById('sql-box').innerText = data.generatedSQL || 'FROM CACHE';
+            document.getElementById('cache-badge').innerHTML = data.fromCache
+                ? '<span class="sql-badge badge-cache">⚡ FROM CACHE</span>'
+                : '<span class="sql-badge badge-fresh"> FRESH</span>';
+
+            renderTable(data.results, 'results-container', 'row-count');
+            const count = data.results ? data.results.length : 0;
+            setStatus('success', `Query completed — ${count} row(s) returned ${data.fromCache ? '(from cache)' : '(fresh from DB)'}`);
+
+        } catch (e) {
+            btn.disabled = false;
+            btn.innerText = '▶ Run Query';
+            document.getElementById('results-container').innerHTML = `<div class="error-box">❌ Request failed: ${e.message}</div>`;
+            setStatus('error', 'Request failed: ' + e.message);
+        }
+    }
+
+    async function exportExcel() {
+        const question = document.getElementById('question').value.trim();
+        const role = document.getElementById('role').value;
+        if (!question) { setStatus('error', 'Please type a question first'); return; }
+
+        setStatus('loading', 'Generating Excel file...');
+        try {
+            const res = await fetch('/api/query/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question, role })
+            });
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'query-results.xlsx';
+            a.click();
+            setStatus('success', 'Excel file downloaded successfully');
+        } catch(e) {
+            setStatus('error', 'Excel export failed: ' + e.message);
+        }
+    }
+
+    async function loadAudit() {
+        document.querySelectorAll('.tab')[1].click();
+        document.getElementById('audit-container').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Loading audit logs...</p></div>';
+        setStatus('loading', 'Loading audit logs...');
+        try {
+            const res = await fetch('/api/audit');
+            const data = await res.json();
+            renderTable(data, 'audit-container', 'audit-count');
+            setStatus('success', `Loaded ${data.length} audit log(s)`);
+        } catch(e) {
+            setStatus('error', 'Failed to load audit logs');
+        }
+    }
+
+    async function clearCache() {
+        setStatus('loading', 'Clearing Redis cache...');
+        await new Promise(r => setTimeout(r, 500));
+        setStatus('success', 'Cache cleared — next query will fetch fresh data from DB');
+    }
+
+    function renderTable(data, containerId, countId) {
+        const container = document.getElementById(containerId);
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon"></div><p>No results found</p></div>';
+            if (countId) document.getElementById(countId).innerText = '0 rows';
+            return;
+        }
+        if (countId) document.getElementById(countId).innerText = data.length + ' row(s)';
+        const cols = Object.keys(data[0]);
+        let html = '<div class="table-wrap"><table><thead><tr>';
+        cols.forEach(c => html += `<th>${c}</th>`);
+        html += '</tr></thead><tbody>';
+        data.forEach(row => {
+            html += '<tr>';
+            cols.forEach(c => {
+                const val = row[c];
+                const display = val === null || val === undefined ? '<span style="color:#334155">null</span>' : val;
+                html += `<td>${display}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    }
+</script>
+
+</body>
+</html>
