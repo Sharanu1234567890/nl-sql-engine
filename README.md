@@ -9,7 +9,7 @@
 [![Redis](https://img.shields.io/badge/Redis-7-red)](https://redis.io/)
 [![Java](https://img.shields.io/badge/Java-17-orange)](https://www.java.com/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-
+ 
 ---
 
 ## What is this?
