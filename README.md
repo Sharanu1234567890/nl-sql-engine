@@ -12,7 +12,7 @@
  
 ---
   
-## What is this?
+## What is this?   
 
 NL-SQL Engine lets anyone query a database using plain English — no SQL knowledge required.
 
